@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Site dashboard</title>
+<link rel="stylesheet" href="/site/static/geist.css">
+<style>
+  body{min-height:100vh}
+  .wrap{max-width:68rem;margin:0 auto;padding:28px 24px 80px}
+  header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}
+  header.top b{font-size:17px;letter-spacing:-.01em}
+  header.top .sp{flex:1}
+  .tabs{display:flex;gap:4px;margin:18px 0 14px;flex-wrap:wrap}
+  .tab{appearance:none;border:1px solid transparent;background:none;color:var(--fg-2);font:500 13px var(--sans);padding:7px 12px;border-radius:6px;cursor:pointer}
+  .tab[aria-selected="true"]{border-color:var(--line-2);color:var(--fg);background:var(--bg-2)}
+  .btn{appearance:none;border:1px solid var(--line-2);background:var(--bg);color:var(--fg);border-radius:6px;font:500 12.5px var(--sans);padding:7px 11px;cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:var(--fg-3)}
+  .btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .btn.danger{color:var(--wip)}
+  .btn.sm{padding:4px 8px;font-size:12px}
+  .btn:disabled{opacity:.4;cursor:default}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+  .chip{appearance:none;border:1px solid var(--line-2);background:var(--bg);color:var(--fg-2);border-radius:999px;font:500 12px var(--mono);padding:4px 10px;cursor:pointer}
+  .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  select,input,textarea{font:14px var(--sans);color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:6px;padding:7px 9px}
+  textarea{font:13px/1.55 var(--mono);width:100%;min-height:340px;resize:vertical}
+  table.list{width:100%;border-collapse:collapse;font-size:14px}
+  table.list th{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3);text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--line-2)}
+  table.list td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+  table.list td.acts{white-space:nowrap;text-align:right}
+  table.list td.acts .btn{margin-left:4px}
+  .muted{color:var(--fg-3);font-size:12.5px}
+  .pill{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--fg-2)}
+  dialog{border:1px solid var(--line-2);border-radius:10px;background:var(--bg);color:var(--fg);padding:0;width:min(52rem,calc(100% - 24px));max-height:calc(100vh - 40px)}
+  dialog::backdrop{background:rgba(0,0,0,.45)}
+  dialog form{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+  .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .row label,.field{display:flex;flex-direction:column;gap:4px;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3)}
+  .row label input,.row label select{font:14px var(--sans);text-transform:none;letter-spacing:0}
+  .end{display:flex;gap:8px;justify-content:flex-end}
+  pre.log{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:12px;font:12px/1.5 var(--mono);white-space:pre-wrap;max-height:320px;overflow:auto}
+  #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;display:none;max-width:90vw;z-index:9}
+  #toast.err{background:var(--wip)}
+  .panel{display:none}.panel.on{display:block}
+  [hidden]{display:none !important}
+  @media (max-width:700px){.row{grid-template-columns:1fr 1fr}.wrap{padding:16px}table.list th:nth-child(3),table.list td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <b>Site dashboard</b><span class="muted">Local only · changes go live when you publish</span>
+    <span class="sp"></span>
+    <a class="btn" href="/site/index.html" target="_blank" rel="noopener">Preview site</a>
+    <button class="btn primary" data-go="publish">Publish…</button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="posts" aria-selected="true">Posts</button>
+    <button class="tab" role="tab" data-tab="pages">Pages</button>
+    <button class="tab" role="tab" data-tab="vault">Vault</button>
+    <button class="tab" role="tab" data-tab="publish">Publish</button>
+  </nav>
+
+  <!-- POSTS -->
+  <section class="panel on" id="p-posts">
+    <div class="bar">
+      <button class="btn primary" id="newPost">New post</button>
+      <span class="muted">Topic:</span><span id="chips"></span>
+    </div>
+    <div class="bar" id="bulkBar" hidden>
+      <span class="muted">All <b id="bulkTopic"></b> posts:</span>
+      <select id="bulkAction">
+        <option value="public">Make public</option>
+        <option value="draft">Hide (draft)</option>
+        <option value="vault">Move to Vault</option>
+        <option value="delete">Delete</option>
+      </select>
+      <button class="btn" id="bulkGo">Apply</button>
+    </div>
+    <table class="list"><thead><tr><th>Date</th><th>Title</th><th>Topic</th><th>Status</th><th></th></tr></thead><tbody id="postRows"></tbody></table>
+    <p class="muted">Posts appear on the Ideas page, which is private: they are stored outside the public repo and encrypted when you publish. "To Vault" turns a post into a standalone private file instead.</p>
+  </section>
+
+  <!-- PAGES -->
+  <section class="panel" id="p-pages">
+    <div class="bar"><button class="btn primary" id="newPage">New page</button></div>
+    <table class="list"><thead><tr><th>Address</th><th>Title</th><th>Description</th><th>Status</th><th></th></tr></thead><tbody id="pageRows"></tbody></table>
+    <p class="muted">Public: in the menu. Private: under Vault in the menu, opens only with the password, source kept outside the repo. Unlisted: online, not in the menu. Draft: not online. Menu order: About first, then A–Z.</p>
+  </section>
+
+  <!-- VAULT -->
+  <section class="panel" id="p-vault">
+    <p id="vaultPending" class="callout wip" hidden></p>
+    <div class="bar">
+      <input type="password" id="vpw" placeholder="Vault password" autocomplete="off" style="min-width:16rem">
+      <button class="btn primary" id="encrypt">Re-encrypt vault</button>
+    </div>
+    <p class="muted">Re-encrypting locks everything in the Vault folder with this password. Use your usual password, or every item will need the new one.</p>
+    <table class="list"><thead><tr><th>Private pages</th></tr></thead><tbody id="vaultRows"></tbody></table>
+    <p class="muted">Standalone private files (essays, notes, PDFs) are listed on the site's Vault page once you unlock it.</p>
+  </section>
+
+  <!-- PUBLISH -->
+  <section class="panel" id="p-publish">
+    <div class="field">Changes not yet published</div>
+    <pre class="log" id="gitStatus"></pre>
+    <div class="bar">
+      <input id="msg" placeholder="What changed? (commit message)" style="flex:1;min-width:16rem">
+      <input id="pubPw" type="password" placeholder="Vault password (to lock private changes)" autocomplete="off" style="min-width:16rem">
+      <button class="btn primary" id="publish">Build and publish</button>
+    </div>
+    <pre class="log" id="pubLog" hidden></pre>
+  </section>
+</div>
+
+<dialog id="postDlg"><form method="dialog" id="postForm">
+  <div class="field">Post</div>
+  <input id="pTitle" placeholder="Title" required style="font-size:17px">
+  <div class="row">
+    <label>Month<input id="pDate" type="month" required></label>
+    <label>Topic<input id="pTopic" list="topicList" required></label>
+    <label>Status<select id="pStatus"><option value="draft">Draft</option><option value="public">Public</option></select></label>
+    <label>Format<select id="pFormat"><option value="md">Markdown</option><option value="html">HTML</option></select></label>
+  </div>
+  <textarea id="pBody" placeholder="Write here. In Markdown: a blank line between paragraphs, [link text](https://…), **bold**, - for lists."></textarea>
+  <div class="end"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" id="pSave" value="save">Save</button></div>
+</form></dialog>
+<datalist id="topicList"></datalist>
+
+<dialog id="pageDlg"><form method="dialog" id="pageForm">
+  <div class="field">Page</div>
+  <div class="row">
+    <label style="grid-column:span 2">Title<input id="gTitle" required></label>
+    <label>Address<input id="gSlug" disabled></label>
+    <label>Status<select id="gStatus"><option value="public">Public</option><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="draft">Draft</option></select></label>
+  </div>
+  <label class="field">Description (for search engines)<input id="gDesc"></label>
+  <textarea id="gBody"></textarea>
+  <p class="muted" style="margin:0">HTML. Keep the outer &lt;div class="article"&gt;. Write {{POSTS}} where the list of public posts should go, and {{EMAIL}} for your email.</p>
+  <div class="end"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="save">Save</button></div>
+</form></dialog>
+
+<div id="toast" role="status"></div>
+<script>
+const TOKEN = "{{TOKEN}}";
+let S = {posts: [], pages: [], vault: {titles: [], pending: []}, git: ""}, topic = "all", editing = null, editingPage = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(t, err){const el=$("#toast");el.textContent=t;el.className=err?"err":"";el.style.display="block";clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",err?6000:2500)}
+async function api(path, body){
+  const r = await fetch(path, {method: body===undefined?"GET":"POST", headers: {"X-Admin-Token": TOKEN, "Content-Type": "application/json"}, body: body===undefined?undefined:JSON.stringify(body)});
+  const j = await r.json(); if(!r.ok) throw new Error(j.error || "Failed"); return j;
+}
+async function load(){ S = await api("/api/state"); render(); }
+async function act(path, body, msg){ try{ const j = await api(path, body); toast(msg || "Saved"); await load(); return j; } catch(e){ toast(e.message, true); throw e; } }
+
+function render(){
+  // topics
+  const counts = {}; S.posts.forEach(p => counts[p.topic] = (counts[p.topic]||0)+1);
+  const topics = Object.keys(counts).sort();
+  $("#topicList").innerHTML = topics.map(t => `<option value="${esc(t)}">`).join("");
+  $("#chips").innerHTML = [`<button class="chip" data-topic="all" aria-pressed="${topic==="all"}">all ${S.posts.length}</button>`]
+    .concat(topics.map(t => `<button class="chip" data-topic="${esc(t)}" aria-pressed="${topic===t}">${esc(t)} ${counts[t]}</button>`)).join(" ");
+  $("#bulkBar").hidden = topic === "all"; $("#bulkTopic").textContent = topic;
+  const rows = S.posts.filter(p => topic==="all" || p.topic===topic);
+  $("#postRows").innerHTML = rows.map(p => `<tr>
+    <td class="mono muted">${esc(p.date)}</td>
+    <td><a href="/site/vault.html#ideas/${esc(p.slug)}" target="_blank" rel="noopener">${esc(p.title)}</a></td>
+    <td class="pill">${esc(p.topic)}</td>
+    <td><select data-status="${esc(p.slug)}"><option value="public" ${p.status==="public"?"selected":""}>Public</option><option value="draft" ${p.status==="draft"?"selected":""}>Draft</option></select></td>
+    <td class="acts"><button class="btn sm" data-edit="${esc(p.slug)}">Edit</button><button class="btn sm" data-vault="${esc(p.slug)}">To Vault</button><button class="btn sm danger" data-del="${esc(p.slug)}">Delete</button></td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">No posts.</td></tr>`;
+  // pages
+  $("#pageRows").innerHTML = S.pages.map(g => `<tr>
+    <td class="mono"><a href="/site/${g.status==="private"?"vault.html#"+esc(g.slug):esc(g.slug)+".html"}" target="_blank" rel="noopener">${esc(g.slug)}</a></td>
+    <td>${esc(g.title)}</td><td class="muted">${esc(g.desc).slice(0,60)}</td>
+    <td><select data-pstatus="${esc(g.slug)}" ${g.slug==="vault"?"disabled":""}>${["public","private","unlisted","draft"].map(s=>`<option value="${s}" ${g.status===s?"selected":""} ${s==="private"&&g.protected?"disabled":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></td>
+    <td class="acts"><button class="btn sm" data-pedit="${esc(g.slug)}">Edit</button><button class="btn sm" data-pvault="${esc(g.slug)}" ${g.protected?"disabled":""}>To Vault</button><button class="btn sm danger" data-pdel="${esc(g.slug)}" ${g.protected?"disabled":""}>Delete</button></td></tr>`).join("");
+  // vault
+  $("#vaultRows").innerHTML = S.vault.titles.map(t => `<tr><td>${esc(t)}</td></tr>`).join("") || `<tr><td class="muted">Empty.</td></tr>`;
+  const pend = S.vault.pending; $("#vaultPending").hidden = !pend.length;
+  $("#vaultPending").innerHTML = pend.length ? `<b>${pend.length} private change(s) not yet locked:</b> ${pend.slice(0,8).map(esc).join(", ")}${pend.length>8?"…":""}. Re-encrypt here, or enter the password when you publish.` : "";
+  // git
+  $("#gitStatus").textContent = S.git || "Nothing to publish.";
+}
+
+function openPost(p){
+  editing = p ? p.slug : null;
+  $("#pTitle").value = p?.title || ""; $("#pDate").value = p?.date || new Date().toISOString().slice(0,7);
+  $("#pTopic").value = p?.topic || (topic!=="all"?topic:"ideas"); $("#pStatus").value = p?.status || "draft";
+  $("#pFormat").value = p?.format || "md"; $("#pBody").value = p?.body || ""; $("#postDlg").showModal();
+}
+function openPage(g){
+  editingPage = g.slug; $("#gTitle").value = g.title; $("#gSlug").value = g.slug; $("#gStatus").value = g.status;
+  $("#gStatus").disabled = g.slug==="vault"; $("#gDesc").value = g.desc; $("#gBody").value = g.body; $("#pageDlg").showModal();
+}
+$("#postForm").addEventListener("submit", async e => {
+  if (e.submitter?.value !== "save") return;
+  e.preventDefault();
+  await act("/api/posts/save", {slug: editing, title: $("#pTitle").value, date: $("#pDate").value, topic: $("#pTopic").value,
+    status: $("#pStatus").value, format: $("#pFormat").value, body: $("#pBody").value}, "Post saved");
+  $("#postDlg").close();
+});
+$("#pageForm").addEventListener("submit", async e => {
+  if (e.submitter?.value !== "save") return;
+  e.preventDefault();
+  await act("/api/pages/save", {slug: editingPage, title: $("#gTitle").value, status: $("#gStatus").value, desc: $("#gDesc").value, body: $("#gBody").value}, "Page saved");
+  $("#pageDlg").close();
+});
+
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (d.tab || d.go){ const name = d.tab || d.go;
+    document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab===name));
+    document.querySelectorAll(".panel").forEach(p => p.classList.toggle("on", p.id==="p-"+name)); return; }
+  if (d.topic){ topic = d.topic; render(); return; }
+  if (t.id==="newPost") return openPost(null);
+  if (d.edit) return openPost(S.posts.find(p => p.slug===d.edit));
+  if (d.vault && confirm("Move this post to the Vault? It leaves the public site and repo, and opens only with the vault password.")) return act("/api/posts/vault", {slug: d.vault}, "Moved. Re-encrypt the vault, then publish.");
+  if (d.del && confirm("Delete this post for good?")) return act("/api/posts/delete", {slug: d.del}, "Deleted");
+  if (t.id==="bulkGo"){ const a = $("#bulkAction").value;
+    if (confirm(`Apply "${$("#bulkAction").selectedOptions[0].text}" to every post in "${topic}"?`)) return act("/api/bulk", {topic, action: a}, "Done"); return; }
+  if (t.id==="newPage"){ const title = prompt("New page title"); if (!title) return;
+    const slug = prompt("Address (lowercase, e.g. hobbies)", title.toLowerCase().replace(/[^a-z0-9]+/g,"-")); if (!slug) return;
+    return act("/api/pages/new", {title, slug}, "Page created as a draft"); }
+  if (d.pedit) return openPage(S.pages.find(g => g.slug===d.pedit));
+  if (d.pvault && confirm("Move this whole page to the Vault?")) return act("/api/pages/vault", {slug: d.pvault}, "Moved. Re-encrypt the vault, then publish.");
+  if (d.pdel && confirm("Delete this page for good?")) return act("/api/pages/delete", {slug: d.pdel}, "Deleted");
+  if (t.id==="encrypt"){ const pw = $("#vpw").value; if (!pw) return toast("Enter the vault password", true);
+    t.disabled = true; try { await act("/api/vault/encrypt", {password: pw}, "Vault re-encrypted"); $("#vpw").value=""; } finally { t.disabled = false; } return; }
+  if (t.id==="publish"){ if (S.vault.pending.length && !$("#pubPw").value && !confirm("Private changes aren't locked yet. Enter the vault password to include them. Publish anyway, without them?")) return;
+    t.disabled = true; $("#pubLog").hidden = false; $("#pubLog").textContent = "Publishing…";
+    try { const j = await act("/api/publish", {message: $("#msg").value, password: $("#pubPw").value}, "Published. Live in a minute or two."); $("#pubPw").value=""; $("#pubLog").textContent = j.output; $("#msg").value=""; }
+    catch(err){ $("#pubLog").textContent = err.message; } finally { t.disabled = false; } }
+});
+document.addEventListener("change", e => {
+  const s = e.target;
+  if (s.dataset.status){ const p = S.posts.find(x => x.slug===s.dataset.status); act("/api/posts/save", {...p, status: s.value}, s.value==="public"?"Now public":"Hidden"); }
+  if (s.dataset.pstatus){ const g = S.pages.find(x => x.slug===s.dataset.pstatus); act("/api/pages/save", {slug: g.slug, title: g.title, status: s.value, desc: g.desc, body: g.body}, "Page updated"); }
+});
+load().catch(e => toast(e.message, true));
+</script>
+</body>
+</html>
