@@ -116,7 +116,7 @@
         e.preventDefault();
         var page = rel.match(/^([a-z0-9-]+)\.html$/);
         if (page) { closeFrame(); location.href = "index.html#" + ({ library: "archive", vault: "files" }[page[1]] || page[1]); return; }
-        openLib(rel);
+        openLib(rel, /\.pdf$/i.test(rel) ? window.open("", "_blank") : null); // open the tab now, before popup blockers kick in
       });
     };
     // A blob: address (not srcdoc) gives the file its own URL, so "#x" links, hash routers and
