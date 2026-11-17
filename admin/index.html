@@ -168,14 +168,14 @@ function render(){
   const rows = S.posts.filter(p => topic==="all" || p.topic===topic);
   $("#postRows").innerHTML = rows.map(p => `<tr>
     <td class="mono muted">${esc(p.date)}</td>
-    <td><a href="/site/vault.html#ideas/${esc(p.slug)}" target="_blank" rel="noopener">${esc(p.title)}</a></td>
+    <td><a href="/site/index.html#ideas/${esc(p.slug)}" target="_blank" rel="noopener">${esc(p.title)}</a></td>
     <td class="pill">${esc(p.topic)}</td>
     <td><select data-status="${esc(p.slug)}"><option value="public" ${p.status==="public"?"selected":""}>Public</option><option value="draft" ${p.status==="draft"?"selected":""}>Draft</option></select></td>
     <td class="acts"><button class="btn sm" data-edit="${esc(p.slug)}">Edit</button><button class="btn sm" data-vault="${esc(p.slug)}">To Vault</button><button class="btn sm danger" data-del="${esc(p.slug)}">Delete</button></td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">No posts.</td></tr>`;
   // pages
   $("#pageRows").innerHTML = S.pages.map(g => `<tr>
-    <td class="mono"><a href="/site/${g.status==="private"?"vault.html#"+esc(g.slug):esc(g.slug)+".html"}" target="_blank" rel="noopener">${esc(g.slug)}</a></td>
+    <td class="mono"><a href="/site/${g.status==="private"?"index.html#"+esc(g.slug):esc(g.slug)+".html"}" target="_blank" rel="noopener">${esc(g.slug)}</a></td>
     <td>${esc(g.title)}</td><td class="muted">${esc(g.desc).slice(0,60)}</td>
     <td><select data-pstatus="${esc(g.slug)}" ${g.slug==="vault"?"disabled":""}>${["public","private","unlisted","draft"].map(s=>`<option value="${s}" ${g.status===s?"selected":""} ${s==="private"&&g.protected?"disabled":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></td>
     <td class="acts"><button class="btn sm" data-pedit="${esc(g.slug)}">Edit</button><button class="btn sm" data-pvault="${esc(g.slug)}" ${g.protected?"disabled":""}>To Vault</button><button class="btn sm danger" data-pdel="${esc(g.slug)}" ${g.protected?"disabled":""}>Delete</button></td></tr>`).join("");

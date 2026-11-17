@@ -140,17 +140,14 @@ tr:last-child td{border-bottom:0}
   .index-list li{grid-template-columns:minmax(0,1fr);gap:2px}
   th,td{padding-right:10px}
 }
-/* Vault: locked menu items, password popup, file viewer */
-.nav a.locked::after{content:"";display:inline-block;width:9px;height:10px;margin-left:7px;vertical-align:-1px;opacity:.55;
-  background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 10'%3E%3Cpath d='M2 4V3a2.5 2.5 0 015 0v1h1v6H1V4zm1 0h3V3a1.5 1.5 0 00-3 0z'/%3E%3C/svg%3E") no-repeat center/contain;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 10'%3E%3Cpath d='M2 4V3a2.5 2.5 0 015 0v1h1v6H1V4zm1 0h3V3a1.5 1.5 0 00-3 0z'/%3E%3C/svg%3E") no-repeat center/contain}
+/* Password box under About, and the file viewer */
+.gate{display:flex;flex-direction:column;gap:8px;max-width:22rem;margin:32px 0 0;padding-top:20px;border-top:1px solid var(--line)}
+.gate[hidden]{display:none}
+.gate-row{display:flex;gap:8px}
+.gate input{flex:1;min-width:0;font:15px var(--sans);padding:7px 10px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--fg)}
+.gate input:focus{outline:2px solid var(--accent);outline-offset:1px}
 .toggle[hidden]{display:none}
 .toggle.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-dialog.vault-dlg{border:1px solid var(--line-2);border-radius:10px;background:var(--bg);color:var(--fg);padding:20px;width:min(22rem,calc(100% - 32px))}
-dialog.vault-dlg::backdrop{background:rgba(0,0,0,.5)}
-dialog.vault-dlg form{display:flex;flex-direction:column;gap:10px}
-dialog.vault-dlg input{font:15px var(--sans);padding:8px 10px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--fg)}
-.vault-actions{display:flex;gap:8px;justify-content:flex-end}
 .vault-frame{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}
 .vault-frame[hidden]{display:none}
 .vault-frame-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--fg-2)}

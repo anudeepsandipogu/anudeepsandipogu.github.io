@@ -7,7 +7,8 @@ Posts:         ../personal-archive/private-site/content/posts/ (and content/post
 Page header (first line):
     <!-- title: Page title | slug: about | status: public | desc: ... -->
   status for public pages: public (in the menu) · unlisted (online, not in the menu) · draft (not built)
-  Private pages are listed under "Vault" in the menu and open only with the vault password.
+  Private pages are hidden until the password is typed into the box under About; then they join
+  the menu and open in place at index.html#slug.
 Post header:
     <!--
     title: ...
@@ -36,7 +37,14 @@ ASSETS = ["geist.css", "site.js", "vault.js"]
 VERSION = hashlib.sha1(b"".join((ROOT / "static" / a).read_bytes() for a in ASSETS if (ROOT / "static" / a).exists())).hexdigest()[:8]
 
 # Old addresses that moved; each gets a tiny redirect page (skipped if a real page takes the name).
-REDIRECTS = {"library": "archive", "projects": "work", "reading": "bookshelf", "france": "travel"}
+REDIRECTS = {"library": "archive", "projects": "work", "reading": "bookshelf", "france": "travel", "vault": "about"}
+GATE = """
+<form class="gate" id="gate" autocomplete="off">
+  <label class="kicker" for="gatePw">Password</label>
+  <div class="gate-row"><input id="gatePw" type="password" autocomplete="off" spellcheck="false" required>
+  <button class="toggle primary" type="submit">Open</button></div>
+  <span class="note" id="gateMsg" role="status" aria-live="polite"></span>
+</form>"""
 REDIRECT = ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Moved</title>'
             '<meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url={0}">'
             '</head><body><p>Moved to <a href="{0}">{0}</a>.</p></body></html>\n')
@@ -65,13 +73,13 @@ SHELL = """<!DOCTYPE html>
   </nav>
   <div class="side-foot">
     <button class="toggle" id="themeBtn" type="button" aria-label="Switch colour theme">&#9680; <span id="themeLbl">Dark</span></button>
-    <button class="toggle" id="lockBtn" type="button" hidden>Lock vault</button>
+    <button class="toggle" id="lockBtn" type="button" hidden>Lock</button>
     <a href="mailto:{email}">{email}</a>
     <span>Updated <span class="mono">{updated}</span></span>
   </div>
 </aside>
 <main class="main" id="main">
-<article class="page">
+<article class="page" id="view">
 {body}
 </article>
 </main>
@@ -160,33 +168,27 @@ def load_posts():
 
 
 def nav_html(pages, cur):
+    """Public pages only. Private pages are added by static/vault.js once the password is in."""
     pub = [m for m, _ in pages if m["status"] == "public"]
     pub.sort(key=lambda m: (m["slug"] != "about", m["title"].lower()))  # About first, then A–Z
-    priv = sorted((m for m, _ in pages if m["status"] == "private"), key=lambda m: m["title"].lower())
-    lis = ['      <li><a href="{0}.html"{1}>{2}</a></li>'.format(
-        m["slug"], ' aria-current="page"' if m["slug"] == cur else "", m["title"]) for m in pub]
-    out = "    <div>\n      <ul>\n" + "\n".join(lis) + "\n      </ul>\n    </div>"
-    if priv:
-        plis = ['      <li><a class="locked" href="vault.html#{0}" data-private="{0}">{1}</a></li>'.format(m["slug"], m["title"])
-                for m in priv]
-        plis.append('      <li><a class="locked" href="vault.html#files" data-private="files">Files</a></li>')
-        out += "\n    <div>\n      <h6>Vault</h6>\n      <ul>\n" + "\n".join(plis) + "\n      </ul>\n    </div>"
-    return out
+    lis = ['      <li><a href="{0}" data-slug="{1}"{2}>{3}</a></li>'.format(
+        "index.html" if m["slug"] == "about" else m["slug"] + ".html", m["slug"],
+        ' aria-current="page"' if m["slug"] == cur else "", m["title"]) for m in pub]
+    return "    <div>\n      <ul>\n" + "\n".join(lis) + "\n      </ul>\n    </div>"
 
 
 def link_rewriter(private_slugs, in_private):
     """Public pages: unwrap links to private pages and library files.
-    Private pages: point links at other private pages to vault.html#slug(/anchor)."""
+    Every page: point links at private pages to index.html#slug(/anchor); they open after the password."""
     def fix(m):
         tag, href, text = m.group(0), m.group(1), m.group(2)
         page = re.match(r"(?:\./)?([a-z0-9-]+)\.html(?:#(.+))?$", href)
         is_private_page = bool(page and page.group(1) in private_slugs)
-        is_library = href.startswith("library/")
-        if not in_private and (is_private_page or is_library):
+        if not in_private and href.startswith("library/"):
             return text
-        if in_private and is_private_page:
+        if is_private_page:
             target = page.group(1) + ("/" + page.group(2) if page.group(2) else "")
-            return tag.replace('href="{0}"'.format(href), 'href="vault.html#{0}"'.format(target), 1)
+            return tag.replace('href="{0}"'.format(href), 'href="index.html#{0}"'.format(target), 1)
         return tag
     return lambda body: re.sub(r'<a\s+href="([^"]+)"[^>]*>(.*?)</a>', fix, body, flags=re.S)
 
@@ -211,6 +213,8 @@ def main():
             write(out_dir / f"{slug}.html", "<!-- title: {0} -->\n{1}\n".format(meta["title"], priv_fix(body)))
             private_built.append(slug)
             continue
+        if slug == "about":
+            body += GATE
         title = "{0} · {1}".format(meta["title"], NAME)
         robots = '\n<meta name="robots" content="{0}">'.format(meta["robots"]) if "robots" in meta else ""
         out = SHELL.format(version=VERSION, title=title, desc=meta.get("desc", meta["title"]), robots=robots, name=NAME,
@@ -221,10 +225,12 @@ def main():
             write(ROOT / "index.html", out.replace("<title>{0}</title>".format(title), "<title>{0}</title>".format(NAME)))
             built.add("index")
     redirects = dict(REDIRECTS)
-    redirects.update({s: s for s in private_slugs})  # old public addresses of pages now in the vault
+    redirects.update({s: s for s in private_slugs})  # old public addresses of pages that are now private
     for old, new in redirects.items():
         if new in private_slugs:
-            target = "vault.html#" + new
+            target = "index.html#" + new
+        elif new == "about":
+            target = "index.html"
         elif new in built:
             target = new + ".html"
         else:

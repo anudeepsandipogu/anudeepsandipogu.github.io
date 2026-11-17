@@ -6,9 +6,9 @@
 <title>About · Anudeep Sandipogu</title>
 <meta name="description" content="About">
 <link rel="preload" href="static/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="static/geist.css?v=e63dead1">
-<script src="static/site.js?v=e63dead1"></script>
-<script src="static/vault.js?v=e63dead1" defer></script>
+<link rel="stylesheet" href="static/geist.css?v=3d2aebb3">
+<script src="static/site.js?v=3d2aebb3"></script>
+<script src="static/vault.js?v=3d2aebb3" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -20,38 +20,22 @@
   <nav class="nav" aria-label="Pages">
     <div>
       <ul>
-      <li><a href="about.html" aria-current="page">About</a></li>
-      <li><a href="now.html">Now</a></li>
-      <li><a href="questions.html">Questions</a></li>
-      <li><a href="travel.html">Travel</a></li>
-      <li><a href="work.html">Work</a></li>
-      </ul>
-    </div>
-    <div>
-      <h6>Vault</h6>
-      <ul>
-      <li><a class="locked" href="vault.html#archive" data-private="archive">Archive</a></li>
-      <li><a class="locked" href="vault.html#bookshelf" data-private="bookshelf">Bookshelf</a></li>
-      <li><a class="locked" href="vault.html#grid" data-private="grid">Grid</a></li>
-      <li><a class="locked" href="vault.html#ideas" data-private="ideas">Ideas</a></li>
-      <li><a class="locked" href="vault.html#models" data-private="models">Models</a></li>
-      <li><a class="locked" href="vault.html#principles" data-private="principles">Principles</a></li>
-      <li><a class="locked" href="vault.html#files" data-private="files">Files</a></li>
+      <li><a href="index.html" data-slug="about" aria-current="page">About</a></li>
       </ul>
     </div>
   </nav>
   <div class="side-foot">
     <button class="toggle" id="themeBtn" type="button" aria-label="Switch colour theme">&#9680; <span id="themeLbl">Dark</span></button>
-    <button class="toggle" id="lockBtn" type="button" hidden>Lock vault</button>
+    <button class="toggle" id="lockBtn" type="button" hidden>Lock</button>
     <a href="mailto:anudeepsanwork@gmail.com">anudeepsanwork@gmail.com</a>
-    <span>Updated <span class="mono">2026-11-16</span></span>
+    <span>Updated <span class="mono">2026-11-17</span></span>
   </div>
 </aside>
 <main class="main" id="main">
-<article class="page">
+<article class="page" id="view">
 <div class="article">
 <p>I'm 21. I study Engineering Design at IIT Madras, on a dual degree that finishes in 2027 with an M.Tech in Biomedical Design.</p>
-<p>I work on two things. At an energy startup, I work on forecasting load on India's distribution grid, feeder by feeder. With Prof. Palaniappan Ramu's group, I'm testing whether language models can read engineering trade-off maps. Before that I spent six months in <a href="work.html#honeywell">strategy at Honeywell</a> and a year on <a href="work.html#hyperloop">freight Hyperloop economics</a>.</p>
+<p>I work on two things. At an energy startup, I work on forecasting load on India's distribution grid, feeder by feeder. With Prof. Palaniappan Ramu's group, I'm testing whether language models can read engineering trade-off maps. Before that I spent six months in <a href="index.html#work/honeywell">strategy at Honeywell</a> and a year on <a href="index.html#work/hyperloop">freight Hyperloop economics</a>.</p>
 <p>Email: <a href="mailto:anudeepsanwork@gmail.com">anudeepsanwork@gmail.com</a>.</p>
 
 <p>Things I'm interested in:</p>
@@ -61,7 +45,7 @@
   <li><b>Checking what AI says.</b> In our first pilot, every number a model quoted was right and a third of its claims were not.</li>
   <li><b>Institutions.</b> Whether a technology gets built depends mostly on money, rules and who decides. The Hyperloop work taught me that. Tender documents keep confirming it.</li>
   <li><b>Medicine and models.</b> Good models often fail in hospitals. Mediocre software often spreads. I'd like to understand why.</li>
-  <li><b>Travel.</b> Slowly, long enough to see how a place actually works. (<a href="travel.html">Travel</a>.)</li>
+  <li><b>Travel.</b> Slowly, long enough to see how a place actually works. (<a href="index.html#travel">Travel</a>.)</li>
   <li><b>Cities.</b> Why some places make ordinary life feel large and others make it feel like logistics.</li>
   <li><b>Philosophy.</b> Kafka, Tolstoy, Camus, Fromm. Currently Kant, for a course.</li>
   <li><b>Ambition and a good life.</b> How to work on problems that matter and still have time for the rest of life.</li>
@@ -79,11 +63,17 @@
   <li><b>Sep 2026 –.</b> Energy startup; iSOM co-pilot research.</li></ul>
 
 <h3>This site</h3>
-<p>Notes I keep in public. Some will look wrong to me in a year; I'll leave them up. <a href="now.html">Now</a> is the current month. <a href="work.html">Work</a> has the details.</p>
+<p>Notes I keep for myself. The other pages open with a password.</p>
 
 <h3>Elsewhere</h3>
 <p><a href="https://github.com/anudeepsandipogu">anudeepsandipogu</a> on GitHub.</p>
 </div>
+<form class="gate" id="gate" autocomplete="off">
+  <label class="kicker" for="gatePw">Password</label>
+  <div class="gate-row"><input id="gatePw" type="password" autocomplete="off" spellcheck="false" required>
+  <button class="toggle primary" type="submit">Open</button></div>
+  <span class="note" id="gateMsg" role="status" aria-live="polite"></span>
+</form>
 </article>
 </main>
 </div>

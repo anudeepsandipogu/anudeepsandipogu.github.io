@@ -2,8 +2,8 @@
 
 Personal site. Geist style, patrickcollison.com structure.
 
-Public pages: About, Now, Questions, Travel, Work. Everything else is private: it is listed under
-"Vault" in the menu and opens only with the vault password, decrypted in the browser.
+Only About is public. Every other page and file is encrypted; typing the password into the box
+under About decrypts them in the browser, adds them to the menu, and opens each at `index.html#slug`.
 
 ## Editing
 
