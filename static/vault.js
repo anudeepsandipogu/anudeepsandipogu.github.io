@@ -87,7 +87,13 @@
     if (win) win.close();
     showFrame(hit[0], new TextDecoder().decode(data));
   }
-  function closeFrame() { var ov = document.getElementById("vaultFrame"); if (ov) { ov.hidden = true; ov.querySelector("iframe").srcdoc = ""; } document.body.style.overflow = ""; }
+  var frameUrl = null;
+  function closeFrame() {
+    var ov = document.getElementById("vaultFrame");
+    if (ov) { ov.hidden = true; ov.querySelector("iframe").src = "about:blank"; }
+    if (frameUrl) { URL.revokeObjectURL(frameUrl); frameUrl = null; }
+    document.body.style.overflow = "";
+  }
   function showFrame(path, html) {
     var ov = document.getElementById("vaultFrame");
     if (!ov) {
@@ -105,15 +111,19 @@
         var a = e.target.closest && e.target.closest("a[href]"); if (!a) return;
         var href = a.getAttribute("href");
         if (/^(https?:|mailto:)/.test(href)) { e.preventDefault(); window.open(href, "_blank", "noopener"); return; }
-        if (href.charAt(0) === "#") return;
+        if (href.charAt(0) === "#") return; // the file's own hash routing handles it
         var rel = new URL(href, "https://v/" + path).pathname.slice(1);
         e.preventDefault();
         var page = rel.match(/^([a-z0-9-]+)\.html$/);
-        if (page) { closeFrame(); location.href = "index.html#" + page[1]; return; }
+        if (page) { closeFrame(); location.href = "index.html#" + ({ library: "archive", vault: "files" }[page[1]] || page[1]); return; }
         openLib(rel);
       });
     };
-    fr.srcdoc = html; ov.hidden = false; document.body.style.overflow = "hidden";
+    // A blob: address (not srcdoc) gives the file its own URL, so "#x" links, hash routers and
+    // history.replaceState inside wikis and decks behave as they do when opened directly.
+    if (frameUrl) URL.revokeObjectURL(frameUrl);
+    frameUrl = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    fr.src = frameUrl; ov.hidden = false; document.body.style.overflow = "hidden";
   }
 
   /* ---- what the main column shows ---- */
@@ -195,5 +205,5 @@
     var lb = document.getElementById("lockBtn"); if (lb) lb.addEventListener("click", lock);
     route();
   });
-  window.Vault = { lock: lock, openLib: openLib };
+  window.Vault = { lock: lock, openLib: openLib, index: index };
 })();

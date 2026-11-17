@@ -179,10 +179,16 @@ def main():
     index = {"v": 2, "pages": [], "files": [], "lib": {}}
     for slug, title, data in private_pages():
         index["pages"].append({"slug": slug, "title": title, "id": put("page:" + slug, data)})
+    aliases = {}
     for name, title, mime, data in standalone_files():
-        index["files"].append({"title": title, "type": mime, "id": put(name, data)})
+        item_id = put(name, data)
+        index["files"].append({"title": title, "type": mime, "id": item_id})
+        if name.startswith("file:") and mime == "text/html":  # old links like library/<slug>/ still open it
+            aliases["library/" + name[5:] + "/index.html"] = {"id": item_id, "type": mime}
     for rel, mime, data in library_files():
         index["lib"][rel] = {"id": put("lib:" + rel, data), "type": mime}
+    for rel, entry in aliases.items():
+        index["lib"].setdefault(rel, entry)
     index["h"] = new_h
 
     iv = os.urandom(12)
