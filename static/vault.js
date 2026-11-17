@@ -1,15 +1,31 @@
 /* Password gate. Only About is readable without it. The other pages and files sit in vault/ as
    AES-256-GCM ciphertext; the key comes from the password (PBKDF2-SHA256, 600k rounds) and is kept
-   only in this tab's sessionStorage. "Lock", 15 idle minutes, or closing the tab clears it.
+   in this browser's localStorage for its tabs to share. "Lock" or 15 idle minutes clears it.
    After unlocking, the menu lists every page and each one opens in place at index.html#slug. */
 (function () {
   var KEY = "vault-key", IDLE = 15 * 60 * 1000, NAME = "Anudeep Sandipogu", enc = new TextEncoder();
-  var cache = { key: null, man: null, index: null }, idleTimer = null, home = null, homeTitle = null;
+  var cache = { key: null, man: null, index: null }, idleTimer = null, home = null, homeTitle = null, gateHtml = "";
 
   function b64d(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
   function b64e(buf) { var u = new Uint8Array(buf), s = ""; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
-  function store(raw) { try { if (raw) sessionStorage.setItem(KEY, raw); else sessionStorage.removeItem(KEY); } catch (e) {} }
-  function stored() { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }
+  // The key is shared by this browser's tabs (localStorage) and expires after IDLE without use,
+  // so a link opened in a new tab stays unlocked, and a forgotten tab locks itself.
+  var lastWrite = 0;
+  function store(raw) {
+    try {
+      sessionStorage.removeItem(KEY); // older versions kept it here
+      if (raw) { localStorage.setItem(KEY, JSON.stringify({ k: raw, t: Date.now() })); lastWrite = Date.now(); }
+      else localStorage.removeItem(KEY);
+    } catch (e) {}
+  }
+  function stored() {
+    try {
+      var v = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!v || !v.k) return null;
+      if (Date.now() - v.t > IDLE) { localStorage.removeItem(KEY); return null; }
+      return v.k;
+    } catch (e) { return null; }
+  }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
   async function manifest() {
@@ -36,7 +52,12 @@
     return cache.key;
   }
   function lock() { store(null); cache.key = null; cache.index = null; clearTimeout(idleTimer); location.href = "index.html"; }
-  function touch() { clearTimeout(idleTimer); if (stored()) idleTimer = setTimeout(lock, IDLE); }
+  function touch() {
+    clearTimeout(idleTimer);
+    var raw = stored(); if (!raw) return;
+    if (Date.now() - lastWrite > 30000) store(raw); // note the activity, at most every 30 s
+    idleTimer = setTimeout(function () { if (stored()) touch(); else lock(); }, IDLE + 1000); // another tab may have kept it alive
+  }
   function sync() { var b = document.getElementById("lockBtn"); if (b) b.hidden = !stored(); }
 
   async function item(id) {
@@ -107,6 +128,7 @@
     ov.querySelector("#vaultFramePath").textContent = path.replace(/^library\//, "");
     fr.onload = function () {
       var d = fr.contentDocument; if (!d) return;
+      ["click", "keydown", "scroll"].forEach(function (ev) { d.addEventListener(ev, touch, { passive: true }); }); // reading a file counts as activity
       d.addEventListener("click", function (e) {
         var a = e.target.closest && e.target.closest("a[href]"); if (!a) return;
         var href = a.getAttribute("href");
@@ -135,16 +157,16 @@
   }
   async function route() {
     var v = document.getElementById("view"); if (!v) return;
-    if (home === null) { home = v.innerHTML; homeTitle = document.title; }
+    if (home === null) { home = v.innerHTML; homeTitle = document.title; var g0 = document.getElementById("gate"); gateHtml = g0 ? g0.outerHTML : ""; }
     var h = decodeURIComponent(location.hash.slice(1)), slug = h.split("/")[0], anchor = h.split("/")[1];
     var k = await key();
     if (!k) {
-      showHome(false);
-      if (slug) { // a link to a private page: ask for the password right here
-        var msg = document.getElementById("gateMsg"), pw = document.getElementById("gatePw");
-        if (msg) msg.textContent = "Type the password to open that page.";
-        if (pw) { pw.scrollIntoView({ block: "center" }); pw.focus(); }
-      }
+      if (!slug) { showHome(false); return; }
+      // A link to a locked page: say so at the top and ask for the password there.
+      v.innerHTML = '<div class="article"><p>This page opens with the password.</p></div>' + gateHtml +
+        '<p class="note" style="margin-top:24px"><a href="index.html">Back to About</a></p>';
+      document.title = "Locked · " + NAME; setCurrent("");
+      var pw = document.getElementById("gatePw"); window.scrollTo(0, 0); if (pw) pw.focus();
       return;
     }
     var ix = await index(); buildNav(ix);
@@ -200,6 +222,11 @@
   });
   ["click", "keydown", "scroll"].forEach(function (ev) { document.addEventListener(ev, touch, { passive: true }); });
   window.addEventListener("hashchange", route);
+  window.addEventListener("storage", function (e) { // locked or unlocked in another tab
+    if (e.key !== KEY) return;
+    if (!stored()) { if (cache.key) { cache.key = null; cache.index = null; location.href = "index.html"; } }
+    else if (!cache.key) { sync(); route(); }
+  });
   document.addEventListener("DOMContentLoaded", function () {
     sync(); touch();
     var lb = document.getElementById("lockBtn"); if (lb) lb.addEventListener("click", lock);
